@@ -34,7 +34,7 @@ module neuron
     wire signed [WEIGHT_BITS-1:0]              bus_w;
     wire signed [DATA_BITS-1:0]                bus_data;
     wire signed [DATA_BITS+WEIGHT_BITS-1:0]    bus_mult_result;
-    wire signed [DATA_BITS+WEIGHT_BITS+8:0]    bus_adder;
+    wire signed [DATA_BITS+WEIGHT_BITS-1:0]    bus_adder;
 
     /* Load weights and bias from MIF files */
     integer i;
@@ -45,12 +45,15 @@ module neuron
         // Load bias
         $readmemb(BiasFile, bias_mem);
         
-        // Display loaded values for debugging
-        $display("Loaded weights from %s:", WeightFile);
-        for (i = 0; i < NEURON_WIDTH; i = i + 1) begin
-            $display("  weights[%0d] = %d", i, weights[i]);
+        // Check if weights loaded successfully
+        if (weights[0] === {WEIGHT_BITS{1'bx}}) begin
+            $display("[NEURON ERROR] Failed to load weights from %s - weights[0]=xx", WeightFile);
+            $display("  -> File may not exist or has wrong format!");
+            $display("  -> Expected: %0d lines of %0d-bit binary values", NEURON_WIDTH, WEIGHT_BITS);
+        end else begin
+            // $display("[NEURON SUCCESS] Loaded %s: w[0]=%h w[1]=%h bias=%h", 
+            //          WeightFile, weights[0], weights[1], bias_mem[0]);
         end
-        $display("Loaded bias from %s: %d", BiasFile, bias_mem[0]);
     end
     
     /* Connect bias memory to wire */
@@ -139,5 +142,26 @@ module neuron
         .b                   (bias),
         .neuron_out          (data_out)
     );
+
+    // Monitor at NEGATIVE edge - after posedge updates have settled
+    always @(negedge clk) begin
+        if (WeightFile == "decoder_w_1_1.mif" || WeightFile == "decoder_w_1_2.mif") begin
+            if (rstn) begin  // Only display when not in reset
+                $display("[%0t] NEURON[%s] Counter=%0d | w=%h x=%h | mult=%6d | accum=%6d | bias=%4d | out=%4d", 
+                         $time, WeightFile, counter, bus_w, bus_data, 
+                         $signed(bus_mult_result), $signed(bus_adder), 
+                         $signed(bias), $signed(data_out));
+                
+                // Show detailed breakdown at key counter values
+                if (counter == 1) begin
+                    $display("    [FIRST CYCLE] Starting MAC operation");
+                end
+                if (counter == NEURON_WIDTH) begin
+                    $display("    [LAST INPUT] Final accumulation cycle - ReLU should activate");
+                    $display("    Expected final sum in accum (before bias): %0d", $signed(bus_adder));
+                end
+            end
+        end
+    end
 
 endmodule

@@ -155,7 +155,24 @@ module storage_module
     input [$clog2(MAX_BURST_SIZE):0] buf1_node_read_burst_size,
     output [DATA_BITS*MAX_BURST_SIZE-1:0] buf1_node_read_data,
     output buf1_node_read_valid,
-    output buf1_node_read_busy
+    output buf1_node_read_busy,
+
+    //============================================
+    // Final Output BRAM - Edge Scores - Burst Interface
+    //============================================
+    input edge_score_write_start,
+    input [RAM_ADDR_BITS_FOR_EDGE-6:0] edge_score_write_addr_base,
+    input [$clog2(1):0] edge_score_write_burst_size,
+    input [DATA_BITS*MAX_BURST_SIZE-1:0] edge_score_write_data,
+    output edge_score_write_done,
+    output edge_score_write_busy,
+    
+    input edge_score_read_start,
+    input [RAM_ADDR_BITS_FOR_EDGE-6:0] edge_score_read_addr_base,
+    input [$clog2(1):0] edge_score_read_burst_size,
+    output [DATA_BITS*MAX_BURST_SIZE-1:0] edge_score_read_data,
+    output edge_score_read_valid,
+    output edge_score_read_busy
 );
 
 bram_burst_wrapper # (
@@ -452,5 +469,51 @@ bram_burst_wrapper # (
     .read_busy(buf1_node_read_busy)
 );
 
+//============================================
+// FINAL OUTPUT BRAM - EDGE SCORES
+//============================================
+// Internal wires for 8-bit BRAM (MAX_BURST_SIZE=1)
+wire [DATA_BITS-1:0] edge_score_write_data_internal;
+wire [DATA_BITS-1:0] edge_score_read_data_internal;
+
+// Extract lowest 8 bits for write, pad zeros for read
+assign edge_score_write_data_internal = edge_score_write_data[DATA_BITS-1:0];
+assign edge_score_read_data = {{(DATA_BITS*(MAX_BURST_SIZE-1)){1'b0}}, edge_score_read_data_internal};
+
+// Debug: Monitor write data conversion
+always @(posedge clk) begin
+    if (edge_score_write_start) begin
+        $display("[STORAGE][%0t] EDGE_SCORE: write_data[255:0]=%h, extracted_internal=%h", 
+                $time, edge_score_write_data, edge_score_write_data_internal);
+    end
+end
+
+bram_burst_wrapper # (
+    .RAM_WIDTH(DATA_BITS),
+    .RAM_ADDR_BITS(RAM_ADDR_BITS_FOR_EDGE-5),  // One score per edge (not per feature)
+    .MAX_BURST_SIZE(1),
+    .DATA_FILE(""),
+    .INIT_START_ADDR(0),
+    .INIT_END_ADDR(NUM_EDGES - 1)  // NUM_EDGES scores total
+) final_edge_score_bram (
+    .clock(clk),
+    .reset(rst),
+    
+    // Write port
+    .write_start(edge_score_write_start),
+    .write_addr_base(edge_score_write_addr_base),
+    .write_burst_size(edge_score_write_burst_size),
+    .write_data(edge_score_write_data_internal),
+    .write_done(edge_score_write_done),
+    .write_busy(edge_score_write_busy),
+    
+    // Read port
+    .read_start(edge_score_read_start),
+    .read_addr_base(edge_score_read_addr_base),
+    .read_burst_size(edge_score_read_burst_size),
+    .read_data(edge_score_read_data_internal),
+    .read_valid(edge_score_read_valid),
+    .read_busy(edge_score_read_busy)
+);
 
 endmodule

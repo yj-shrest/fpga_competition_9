@@ -22,47 +22,47 @@ module MP_Edge_Layer_B0_L1
     wire [31:0] counter;
     wire counter_done;
     reg computation_active;
-    // In MP_Edge_Layer_B0_L1.v, add this:
-always @(posedge clk) begin
-        if (done) begin
-            $display("[%0t] MP_Edge_Layer_B0_L1: DONE asserted, output[0:31]=%h", 
-                    $time, data_out_flat);
-        end
-end
-
+    // Individual neuron outputs
+    wire signed [DATA_BITS-1:0] neuron_outputs [0:NUM_NEURONS-1];
     // Add a delay register for done signal
     reg done_reg;
     reg [6:0] done_delay_counter;
     
-    // Control computation active flag
+    // Control computation active flag - FIXED STATE MACHINE
     always @(posedge clk or negedge rstn) begin
         if (!rstn) begin
             computation_active <= 0;
             done_reg <= 0;
             done_delay_counter <= 0;
         end else begin
-            if (start && !computation_active) begin
+            if (start && !computation_active && !done_reg) begin
                 computation_active <= 1;  // Start computation
                 done_reg <= 0;
                 done_delay_counter <= 0;
                 $display("[%0t] MP_Edge_Layer_B0_L1: Computation started", $time);
-            end else if (counter_done && computation_active) begin
+            end else if (counter_done && computation_active && !done_reg) begin
                 // Counter is done, start done delay
-                if (done_delay_counter < 50) begin  // Wait 2 cycles for neurons to finish
+                if (done_delay_counter < 1) begin  // Wait cycles for neurons to finish
                     done_delay_counter <= done_delay_counter + 1;
                     done_reg <= 0;
-                    $display("[%0t] MP_Edge_Layer_B0_L1: Waiting for neurons, delay=%0d", 
-                            $time, done_delay_counter);
+                    // $display("[%0t] MP_Edge_Layer_B0_L1: Waiting for neurons, delay=%0d", 
+                    //         $time, done_delay_counter);
                 end else begin
-                    // After delay, assert done
+                    // After delay, assert done (keep computation_active HIGH!)
+//                    $display("[%0t] MP_Edge_Layer_B0_L1: About to assert done - neuron outputs[0]=%h", 
+                            //$time, neuron_outputs[0]);
+//                    $display("[%0t] MP_Edge_Layer_B0_L1: data_out_flat[31:0]=%h", 
+                            //$time, data_out_flat[31:0]);
                     done_reg <= 1;
-                    computation_active <= 0;
                     done_delay_counter <= 0;
                     $display("[%0t] MP_Edge_Layer_B0_L1: Computation completed, asserting done", $time);
                 end
-            end else if (done_reg) begin
-                // Done was asserted, clear it after one cycle
+            end else if (done_reg && start) begin
+                // New start signal received, clear done and restart
+                computation_active <= 1;
                 done_reg <= 0;
+                done_delay_counter <= 0;
+                $display("[%0t] MP_Edge_Layer_B0_L1: Restarting computation", $time);
             end
         end
     end
@@ -74,20 +74,28 @@ end
         .END_COUNTER(NUM_FEATURES)
     ) layer_counter (
         .clk(clk),
-        .rstn(computation_active),
+        .rstn(start),
         .counter_out(counter),
         .counter_donestatus(counter_done)
     );
     
 
-    // Individual neuron outputs
-    wire signed [DATA_BITS-1:0] neuron_outputs [0:NUM_NEURONS-1];
-     // Debug: Check when neurons are producing output
+    
+    
+    // Debug: Check when neurons are producing output
     always @(posedge clk) begin
         if (rstn && computation_active) begin
             // Check during computation
-            if (counter == 0) begin
-                $display("[%0t] MP_Edge_Layer_B0_L1: Starting computation, counter=0", $time);
+            if (counter == 1) begin
+                $display("[%0t] MP_Edge_Layer_B0_L1: Starting computation, counter=1", $time);
+                $display("[%0t] MP_Edge_Layer_B0_L1: data_in_flat[7:0]=%h, [15:8]=%h", 
+                        $time, data_in_flat[7:0], data_in_flat[15:8]);
+            end
+            
+            // Sample a mid-point
+            if (counter == 10) begin
+//                $display("[%0t] MP_Edge_Layer_B0_L1: Mid computation, counter=10", $time);
+//                $display("[%0t] MP_Edge_Layer_B0_L1: neuron 0 output = %h", //$time, neuron_outputs[0]);
             end
             
             // When counter is about to finish
@@ -97,28 +105,26 @@ end
             
             // When counter finishes (neurons should output here)
             if (counter == NUM_FEATURES-1) begin
-                $display("[%0t] MP_Edge_Layer_B0_L1: Counter done, neuron 0 output = %h", 
-                        $time, neuron_outputs[0]);
-                $display("[%0t] MP_Edge_Layer_B0_L1: data_out_flat[0:31] = %h", 
-                        $time, data_out_flat[31:0]);
+//                $display("[%0t] MP_Edge_Layer_B0_L1: Counter done, neuron 0 output = %h", 
+                        //$time, neuron_outputs[0]);
+//                $display("[%0t] MP_Edge_Layer_B0_L1: data_out_flat[0:31] = %h", 
+                        //$time, data_out_flat[31:0]);
             end
             
             // After counter finishes (during done delay)
             if (counter_done && done_delay_counter == 1) begin
-                $display("[%0t] MP_Edge_Layer_B0_L1: After 1 delay, neuron 0 output = %h", 
-                        $time, neuron_outputs[0]);
-                $display("[%0t] MP_Edge_Layer_B0_L1: data_out_flat[0:31] = %h", 
-                        $time, data_out_flat[31:0]);
+//                $display("[%0t] MP_Edge_Layer_B0_L1: After 1 delay, neuron 0 output = %h", 
+                        //$time, neuron_outputs[0]);
+//                $display("[%0t] MP_Edge_Layer_B0_L1: data_out_flat[0:31] = %h", 
+                        //$time, data_out_flat[31:0]);
             end
         end
         
         // When done is finally asserted
-        if (done) begin
-            $display("[%0t] MP_Edge_Layer_B0_L1: DONE asserted, output[0:31]=%h", 
-                    $time, data_out_flat[31:0]);
-            $display("[%0t] MP_Edge_Layer_B0_L1: output[32:63]=%h", 
-                    $time, data_out_flat[63:32]);
-        end
+        // if (done) begin
+        //     $display("[%0t] MP_Edge_Layer_B0_L1: DONE asserted, output=%h", 
+        //             $time, data_out_flat);
+        // end
     end
     // Generate neurons
     generate
@@ -134,7 +140,7 @@ end
                 .BiasFile     ("mp_edge_b_0_1_0.mif")
             ) inst (
                 .clk                 (clk),
-                .rstn                (rstn),
+                .rstn                (rstn),  // Ensure neuron is active only during computation
                 .activation_function (activation_function),
                 .data_in_flat        (data_in_flat),
                 .counter             (counter),
@@ -766,12 +772,12 @@ end
     endgenerate
     
     // Debug
-    initial begin
-        $display("========================================");
-        $display("Edge Encoder Layer %0d Initialized", LAYER_NO);
-        $display("  Number of Neurons: %0d", NUM_NEURONS);
-        $display("  Input Features:    %0d", NUM_FEATURES);
-        $display("========================================");
-    end
+    // initial begin
+    //     $display("========================================");
+    //     $display("Edge Encoder Layer %0d Initialized", LAYER_NO);
+    //     $display("  Number of Neurons: %0d", NUM_NEURONS);
+    //     $display("  Input Features:    %0d", NUM_FEATURES);
+    //     $display("========================================");
+    // end
 
 endmodule

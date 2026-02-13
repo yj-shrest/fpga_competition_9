@@ -22,7 +22,7 @@ always @(posedge clk) begin
             counter_out        <= counter_out + 1'b1;
             counter_donestatus <= 1'b0;
 
-            $display("[%0t] Counter: counter_out = %d", $time, counter_out);
+            // $display("[%0t] Counter: counter_out = %d", $time, counter_out);
         end
     end
 end

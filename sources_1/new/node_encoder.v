@@ -148,7 +148,7 @@ module node_encoder
         // Use $readmemh with a temporary array
         begin
             
-            $readmemh(MEM_FILE, temp_array);
+            $readmemb(MEM_FILE, temp_array);
             
             for (j = 0; j < NUM_NODES; j = j + 1) begin
                 // Pack 12 bytes (12 features) into one 96-bit value

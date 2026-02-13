@@ -12,7 +12,8 @@ module MP_Edge_Layer_B7_L1
 (
     input  clk,
     input  rstn,
-    input  activation_function,
+    input  activation_function, 
+    input  start,
     input  signed [NUM_FEATURES*DATA_BITS-1:0] data_in_flat,
     output signed [NUM_NEURONS*DATA_BITS-1:0] data_out_flat,
     output done
@@ -21,23 +22,64 @@ module MP_Edge_Layer_B7_L1
     // Internal counter signals
     wire [31:0] counter;
     wire counter_done;
+    reg computation_active;
+    // Individual neuron outputs
+    wire signed [DATA_BITS-1:0] neuron_outputs [0:NUM_NEURONS-1];
+    // Add a delay register for done signal
+    reg done_reg;
+    reg [6:0] done_delay_counter;
     
+    // Control computation active flag - FIXED STATE MACHINE
+    always @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            computation_active <= 0;
+            done_reg <= 0;
+            done_delay_counter <= 0;
+        end else begin
+            if (start && !computation_active && !done_reg) begin
+                computation_active <= 1;  // Start computation
+                done_reg <= 0;
+                done_delay_counter <= 0;
+                //$display("[%0t] MP_Edge_Layer_B7_L1: Computation started", $time);
+            end else if (counter_done && computation_active && !done_reg) begin
+                // Counter is done, start done delay
+                if (done_delay_counter < 1) begin  // Wait cycles for neurons to finish
+                    done_delay_counter <= done_delay_counter + 1;
+                    done_reg <= 0;
+                    // $display("[%0t] MP_Edge_Layer_B7_L1: Waiting for neurons, delay=%0d", 
+                    //         $time, done_delay_counter);
+                end else begin
+                    // After delay, assert done (keep computation_active HIGH!)
+                    //$display("[%0t] MP_Edge_Layer_B7_L1: About to assert done - neuron outputs[0]=%h", 
+                            //$time, neuron_outputs[0]);
+                    //$display("[%0t] MP_Edge_Layer_B7_L1: data_out_flat[31:0]=%h", 
+                            //$time, data_out_flat[31:0]);
+                    done_reg <= 1;
+                    done_delay_counter <= 0;
+                    //$display("[%0t] MP_Edge_Layer_B7_L1: Computation completed, asserting done", $time);
+                end
+            end else if (done_reg && start) begin
+                // New start signal received, clear done and restart
+                computation_active <= 1;
+                done_reg <= 0;
+                done_delay_counter <= 0;
+                //$display("[%0t] MP_Edge_Layer_B7_L1: Restarting computation", $time);
+            end
+        end
+    end
+
+    assign done = done_reg;
+
     // Instantiate internal counter
     counter #(
         .END_COUNTER(NUM_FEATURES)
     ) layer_counter (
         .clk(clk),
-        .rstn(rstn),
+        .rstn(start),
         .counter_out(counter),
         .counter_donestatus(counter_done)
     );
-    
-    // Done signal driven by counter
-    assign done = counter_done;
-
-    // Individual neuron outputs
-    wire signed [DATA_BITS-1:0] neuron_outputs [0:NUM_NEURONS-1];
-    
+        
     // Generate neurons
     generate
 
@@ -684,12 +726,12 @@ module MP_Edge_Layer_B7_L1
     endgenerate
     
     // Debug
-    initial begin
-        $display("========================================");
-        $display("Edge Encoder Layer %0d Initialized", LAYER_NO);
-        $display("  Number of Neurons: %0d", NUM_NEURONS);
-        $display("  Input Features:    %0d", NUM_FEATURES);
-        $display("========================================");
-    end
+    //initial begin
+    //     $display("========================================");
+    //     $display("Edge Encoder Layer %0d Initialized", LAYER_NO);
+    //     $display("  Number of Neurons: %0d", NUM_NEURONS);
+    //     $display("  Input Features:    %0d", NUM_FEATURES);
+    //     $display("========================================");
+    // end
 
 endmodule

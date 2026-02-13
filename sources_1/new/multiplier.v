@@ -14,10 +14,14 @@ module multiplier
     input  [31:0] counter,
     input  signed [WEIGHT_BITS-1:0] w,
     input  signed [DATA_BITS-1:0] x,
-    output signed [DATA_BITS+WEIGHT_BITS-1:0] mult_result
+    output reg signed [DATA_BITS+WEIGHT_BITS-1:0] mult_result
 );
 
-    // Combinational multiplication
-    assign mult_result = w * x;
+always @(posedge clk or negedge rstn) begin
+    if (!rstn)
+        mult_result <= {(DATA_BITS+WEIGHT_BITS){1'b0}};
+    else
+        mult_result <= w * x;
+end
 
 endmodule

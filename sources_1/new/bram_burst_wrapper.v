@@ -63,6 +63,11 @@ module bram_burst_wrapper #(
     // Temporary storage for burst read data
     reg [RAM_WIDTH-1:0] temp_read_data [0:MAX_BURST_SIZE-1];
     integer i;
+    
+    // Initialize read_data to prevent high-Z
+    initial begin
+        read_data = {(RAM_WIDTH*MAX_BURST_SIZE){1'b0}};
+    end
 
     // Instantiate the dual-port BRAM
     bram_dual #(
@@ -120,6 +125,10 @@ module bram_burst_wrapper #(
                         write_counter <= 0;
                         write_burst_size_reg <= write_burst_size;
                         write_data_reg <= write_data;
+                        
+                        // Debug: Show what data was latched
+                        // $display("[BRAM_WRAPPER][%0t] WRITE LATCH: addr=%0d, burst_size=%0d, write_data=%h", 
+                        //         $time, write_addr_base, write_burst_size, write_data);
                     end else begin
                         write_busy <= 1'b0;
                     end
@@ -152,6 +161,11 @@ module bram_burst_wrapper #(
                     write_done <= 1'b1;
                     write_busy <= 1'b0;
                     write_state <= W_IDLE;
+                    
+                    // Debug: Confirm write completion
+                    // $display("[BRAM_WRAPPER][%0t] WRITE DONE: addr_base=%0d, burst_size=%0d, data[0]=%h", 
+                    //         $time, write_current_addr - write_burst_size_reg, write_burst_size_reg, 
+                    //         write_data_reg[RAM_WIDTH-1:0]);
                 end
             endcase
         end
@@ -168,6 +182,7 @@ module bram_burst_wrapper #(
             read_busy <= 1'b0;
             read_current_addr <= 0;
             read_burst_size_reg <= 0;
+            read_data <= {(RAM_WIDTH*MAX_BURST_SIZE){1'b0}};
             for (i = 0; i < MAX_BURST_SIZE; i = i + 1) begin
                 temp_read_data[i] <= 0;
             end
@@ -191,9 +206,17 @@ module bram_burst_wrapper #(
                         read_current_addr <= read_current_addr + 1;
                         read_counter <= read_counter + 1;
                         
+                        // Debug: Log read request
+                        if (read_counter == 0) begin
+                            $display("[BRAM_WRAPPER][%0t] READ START: addr_base=%0d, burst_size=%0d", 
+                                    $time, read_current_addr, read_burst_size_reg);
+                        end
+                        
                         // Store previous cycle's data (BRAM has 1 cycle latency)
                         if (read_counter > 0) begin
                             temp_read_data[read_counter - 1] <= bram_dout_b;
+                            // $display("[BRAM_WRAPPER][%0t] READ DATA: counter=%0d, addr=%0d, data=%h", 
+                            //         $time, read_counter - 1, read_current_addr - 1, bram_dout_b);
                         end
                         
                         // Check if this is the last read request
@@ -217,6 +240,12 @@ module bram_burst_wrapper #(
                     read_valid <= 1'b1;
                     read_busy <= 1'b0;
                     read_state <= R_IDLE;
+                    
+                    // Debug: Show what we're outputting
+                    $display("[BRAM_WRAPPER][%0t] READ DONE: addr_base=%0d, burst_size=%0d", 
+                            $time, read_current_addr - read_burst_size_reg, read_burst_size_reg);
+                    $display("[BRAM_WRAPPER][%0t]   temp_read_data[0]=%h, read_data will be updated next cycle", 
+                            $time, temp_read_data[0]);
                 end
             endcase
         end
