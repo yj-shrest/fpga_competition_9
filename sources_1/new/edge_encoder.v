@@ -51,11 +51,6 @@ module edge_encoder
     //============================================
     reg [DATA_BITS-1:0] byte_buffer [0:NUM_FEATURES-1];
     reg [DATA_BITS-1:0] byte_value;
-    integer edge_counter;
-    integer byte_counter;
-    integer file_handle;
-    integer read_success;
-    integer i;
     
     //============================================
     // Layer Interconnections
@@ -274,7 +269,7 @@ module edge_encoder
         case (state)
             WRITE: begin
                 encoded_data = encoded_features_reg;
-                edge_addr_out = edge_idx;
+                edge_addr_out = edge_idx; 
                 data_valid = 1;
             end
             

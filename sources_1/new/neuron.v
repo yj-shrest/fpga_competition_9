@@ -145,7 +145,7 @@ module neuron
 
     // Monitor at NEGATIVE edge - after posedge updates have settled
     always @(negedge clk) begin
-        if (WeightFile == "decoder_w_1_1.mif" || WeightFile == "decoder_w_1_2.mif") begin
+        if (WeightFile == "edge_encoder_w_1_1.mif" || WeightFile == "decoder_w_1_2.mif") begin
             if (rstn) begin  // Only display when not in reset
                 $display("[%0t] NEURON[%s] Counter=%0d | w=%h x=%h | mult=%6d | accum=%6d | bias=%4d | out=%4d", 
                          $time, WeightFile, counter, bus_w, bus_data, 

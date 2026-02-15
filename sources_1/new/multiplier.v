@@ -5,8 +5,8 @@
 // ============================================
 module multiplier
 #(
-    parameter DATA_BITS   = 16,
-    parameter WEIGHT_BITS = 32
+    parameter DATA_BITS   = 8,
+    parameter WEIGHT_BITS = 8
 )
 (
     input  clk,

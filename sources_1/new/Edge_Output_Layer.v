@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module Edge_Decoder_Layer
+module edge_output_layer
 #(
     parameter LAYER_NO        = 1,
     parameter NUM_NEURONS    = 32,

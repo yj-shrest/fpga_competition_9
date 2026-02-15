@@ -619,28 +619,28 @@ module Node_Network #(
                     scatter_sum_features_out_valid && 
                     current_node_features_valid && 
                     initial_node_features_valid) begin
-                    $display("[%0t] Node Network LOAD1: All data valid for node %0d", $time, idx);
+                    // $display("[%0t] Node Network LOAD1: All data valid for node %0d", $time, idx);
                     next_state = CONCAT;
                 end else begin
                     if (!scatter_sum_features_in_valid || !scatter_sum_features_out_valid || 
                         !current_node_features_valid || !initial_node_features_valid) begin
-                        $display("[%0t] Node Network LOAD1: Waiting for data (ss_in=%b, ss_out=%b, curr=%b, init=%b)",
-                            $time, scatter_sum_features_in_valid, scatter_sum_features_out_valid,
-                            current_node_features_valid, initial_node_features_valid);
+                        // $display("[%0t] Node Network LOAD1: Waiting for data (ss_in=%b, ss_out=%b, curr=%b, init=%b)",
+                        //     $time, scatter_sum_features_in_valid, scatter_sum_features_out_valid,
+                        //     current_node_features_valid, initial_node_features_valid);
                     end
                 end
             end
 
             CONCAT: begin
                 if (concat_features_valid) begin
-                    $display("[%0t] Node Network CONCAT: Features concatenated for node %0d", $time, idx);
+                    // $display("[%0t] Node Network CONCAT: Features concatenated for node %0d", $time, idx);
                     next_state = LAYER1;
                 end
             end
 
             LAYER1: begin
                 if (Layer1_out_valid) begin
-                    $display("[%0t] Node Network Layer1 valid - %b", $time, Layer1_out_valid);
+                    // $display("[%0t] Node Network Layer1 valid - %b", $time, Layer1_out_valid);
                     next_state = LAYER2;
                 end
             end
@@ -652,7 +652,7 @@ module Node_Network #(
 
             LAYER3: begin
                 if (Layer3_out_valid) begin
-                    $display("[%0t] Node Network: Layer3_out_valid detected, transitioning to STORE", $time);
+                    // $display("[%0t] Node Network: Layer3_out_valid detected, transitioning to STORE", $time);
                     next_state = STORE;
                 end
             end
@@ -664,12 +664,12 @@ module Node_Network #(
 
             DONE: begin
                 if (idx < MAX_NODES - 1) begin
-                    $display("[%0t] Node Network DONE: Node %0d complete (idx=%0d < MAX_NODES-1=%0d), proceeding to node %0d", 
-                        $time, idx, idx, MAX_NODES-1, idx+1);
+                    // $display("[%0t] Node Network DONE: Node %0d complete (idx=%0d < MAX_NODES-1=%0d), proceeding to node %0d", 
+                    //     $time, idx, idx, MAX_NODES-1, idx+1);
                     next_state = LOAD1;  // Auto-restart for next node
                 end else begin
-                    $display("[%0t] Node Network DONE: All nodes complete (idx=%0d >= MAX_NODES-1=%0d)", 
-                        $time, idx, MAX_NODES-1);
+                    // $display("[%0t] Node Network DONE: All nodes complete (idx=%0d >= MAX_NODES-1=%0d)", 
+                        // $time, idx, MAX_NODES-1);
                     next_state = IDLE;   // All nodes processed
                 end
             end
@@ -757,19 +757,19 @@ module Node_Network #(
             end
 
             LAYER1: begin
-                $display("Node Network Block %d - Layer 1 Input: %h", BLOCK_NUM, concat_features);
+                // $display("Node Network Block %d - Layer 1 Input: %h", BLOCK_NUM, concat_features);
                 if (Layer1_out_valid)
                     $display("Node Network Block %d - Layer 1 Output: %h", BLOCK_NUM, Layer1_out_r);
             end
             
             LAYER2: begin
-                $display("Node Network Block %d - Layer 2 Input: %h", BLOCK_NUM, Layer1_out_r);
+                // $display("Node Network Block %d - Layer 2 Input: %h", BLOCK_NUM, Layer1_out_r);
                 if (Layer2_out_valid)
                     $display("Node Network Block %d - Layer 2 Output: %h", BLOCK_NUM, Layer2_out_r);
             end
             
             LAYER3: begin
-                $display("Node Network Block %d - Layer 3 Input: %h", BLOCK_NUM, Layer2_out_r);
+                // $display("Node Network Block %d - Layer 3 Input: %h", BLOCK_NUM, Layer2_out_r);
                 if (Layer3_out_valid)
                     $display("Node Network Block %d - Layer 3 Output: %h", BLOCK_NUM, Layer3_out_r);
             end

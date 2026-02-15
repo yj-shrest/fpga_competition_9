@@ -9,16 +9,21 @@ module edge_decoder
     parameter BIAS_BITS      = 8,
     parameter ADDR_BITS      = 14,
     parameter OUT_FEATURES   = 32,
-    parameter MEM_FILE       = ""
+    parameter MEM_FILE       = "",
+    parameter OUTPUT_FILE    = "edge_decoder_output.txt"
 )
 (
     input  clk,
     input  rstn,
     input  start,
+
+    // Current Edge features from the Edge PingPong 0 Buffer
+    input  [DATA_BITS*NUM_FEATURES-1:0] edge_features,
+    output reg              edge_features_re,
+    input                   edge_features_valid,
     
-    // Optional: Output the encoded results
     output reg [DATA_BITS-1:0] decoded_data,
-    output reg [ADDR_BITS-1:0] edge_addr_out,
+    output reg [ADDR_BITS-6:0] edge_addr_out,
     output reg data_valid,
     
     output reg done
@@ -31,7 +36,8 @@ module edge_decoder
                      READ_EDGE   = 3'b001,
                      LAYER1      = 3'b010,
                      LAYER2      = 3'b011,
-                     WRITE       = 3'b100,
+                     LAYER3      = 3'b100,  // Added Layer3 state
+                     WRITE       = 3'b101,
                      NEXT_EDGE   = 3'b110,
                      FINISH      = 3'b111;  // Added FINISH state
     
@@ -46,10 +52,9 @@ module edge_decoder
     reg [NUM_FEATURES*DATA_BITS-1:0] current_edge_data;
     
     //============================================
-    // Buffer for reading individual bytes from file
+    // File handle for writing output
     //============================================
-    reg [DATA_BITS-1:0] byte_buffer [0:NUM_FEATURES-1];
-    reg [DATA_BITS-1:0] byte_value;
+    integer output_file_handle = 0;
     integer edge_counter;
     integer byte_counter;
     integer file_handle;
@@ -59,18 +64,53 @@ module edge_decoder
     //============================================
     // Layer Interconnections
     //============================================
-    reg layer1_rstn;
+    reg layer1_start;
+    reg layer2_start;
+    reg layer3_start;
+
     wire [NUM_FEATURES*DATA_BITS-1:0] layer1_in;
     wire [OUT_FEATURES*DATA_BITS-1:0] layer1_out;
     wire layer1_done;
     
-    reg layer2_rstn;
-    wire [DATA_BITS-1:0] layer2_out;
+    wire [OUT_FEATURES*DATA_BITS-1:0] layer2_out;
     wire layer2_done;
+
+    wire [DATA_BITS-1:0] layer3_out;
+    wire layer3_done;
     
     // Data registers
     reg [OUT_FEATURES*DATA_BITS-1:0] layer1_out_reg;
+    reg [OUT_FEATURES*DATA_BITS-1:0] layer2_out_reg;
     reg [DATA_BITS-1:0] decoded_features_reg;
+
+    always @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            layer1_start <= 0;
+            layer2_start <= 0;
+            layer3_start <= 0;
+        end else begin
+            // Start layer 1 when entering LAYER1 state
+            if (state == LAYER1 && !layer1_done) begin
+                layer1_start <= 1;
+            end else begin
+                layer1_start <= 0;
+            end
+            
+            // Start layer 2 when entering LAYER2 state
+            if (state == LAYER2 && !layer2_done) begin
+                layer2_start <= 1;
+            end else begin
+                layer2_start <= 0;
+            end
+            
+            // Start layer 3 when entering LAYER3 state
+            if (state == LAYER3 && !layer3_done) begin
+                layer3_start <= 1;
+            end else begin
+                layer3_start <= 0;
+            end
+        end
+    end
     
     //============================================
     // Instantiate Layer 1
@@ -84,8 +124,9 @@ module edge_decoder
         .BIAS_BITS     (BIAS_BITS)
     ) layer1_inst (
         .clk                 (clk),
-        .rstn                (layer1_rstn),
+        .rstn                (layer1_start),
         .activation_function (1'b1),
+        .start (layer1_start), 
         .data_in_flat        (layer1_in),
         .data_out_flat       (layer1_out),
         .done                (layer1_done)
@@ -94,6 +135,23 @@ module edge_decoder
     //============================================
     // Instantiate Layer 2
     //============================================
+    edge_output_layer #(
+        .LAYER_NO      (1),
+        .NUM_NEURONS   (32),
+        .NUM_FEATURES  (OUT_FEATURES),
+        .DATA_BITS     (DATA_BITS),
+        .WEIGHT_BITS   (WEIGHT_BITS),
+        .BIAS_BITS     (BIAS_BITS)
+    ) layer2_inst (
+        .clk                 (clk),
+        .rstn                (layer2_start),
+        .activation_function (1'b1),
+        .start (layer2_start),
+        .data_in_flat        (layer1_out_reg),
+        .data_out_flat       (layer2_out),
+        .done                (layer2_done)
+    );
+
     edge_output_transform #(
         .LAYER_NO      (2),
         .NUM_NEURONS   (1),
@@ -101,14 +159,16 @@ module edge_decoder
         .DATA_BITS     (DATA_BITS),
         .WEIGHT_BITS   (WEIGHT_BITS),
         .BIAS_BITS     (BIAS_BITS)
-    ) layer2_inst (
+    ) layer3_inst (
         .clk                 (clk),
-        .rstn                (layer2_rstn),
-        .activation_function (1'b1),
-        .data_in_flat        (layer1_out_reg),
-        .data_out_flat       (layer2_out),
-        .done                (layer2_done)
+        .rstn                (layer3_start),
+        .activation_function (1'b0),  // No activation for final layer
+        .start (layer3_start),  // Start when layer3 is enabled
+        .data_in_flat        (layer2_out_reg),
+        .data_out_flat       (layer3_out),
+        .done                (layer3_done)
     );
+
     
     //============================================
     // Layer 1 Input Assignment
@@ -116,36 +176,6 @@ module edge_decoder
     assign layer1_in = current_edge_data;
     reg [DATA_BITS-1:0] temp_array [0:(NUM_EDGES*NUM_FEATURES)-1];
     integer j, k;
-    //============================================
-    // Initialize Memory from File
-    //============================================
-    initial begin
-        
-        
-        $display("========================================");
-        $display("Loading edge features from: %s", MEM_FILE);
-        $display("========================================");
-        
-        // Use $readmemb with a temporary array
-        if (MEM_FILE != "") begin
-            
-            $readmemb(MEM_FILE, temp_array);
-            
-            // Load NUM_FEATURES bytes for each edge
-            for (j = 0; j < NUM_EDGES; j = j + 1) begin
-                for (k = 0; k < NUM_FEATURES; k = k + 1) begin
-                    edge_mem[j][k*DATA_BITS +: DATA_BITS] = temp_array[(j*NUM_FEATURES) + k];
-                end
-                $display("Edge %0d: %h", j, edge_mem[j]);
-            end
-            
-            $display("Total edges loaded: %0d", NUM_EDGES);
-        end else begin
-            $display("MEM_FILE is empty - edge_mem will be zero-initialized");
-            $display("Note: Data should be provided via external interface");
-        end
-        $display("========================================");
-    end
     
     //============================================
     // State Register
@@ -160,6 +190,7 @@ module edge_decoder
                     READ_EDGE:  $display("[DECODER][%0t] FSM: READ_EDGE (edge_idx=%0d)", $time, edge_idx);
                     LAYER1:     $display("[DECODER][%0t] FSM: LAYER1 (edge_idx=%0d)", $time, edge_idx);
                     LAYER2:     $display("[DECODER][%0t] FSM: LAYER2 (edge_idx=%0d, layer1_done=%b)", $time, edge_idx, layer1_done);
+                    LAYER3:     $display("[DECODER][%0t] FSM: LAYER3 (edge_idx=%0d, layer2_done=%b)", $time, edge_idx, layer2_done);
                     WRITE:      $display("[DECODER][%0t] FSM: WRITE (edge_idx=%0d, layer2_done=%b)", $time, edge_idx, layer2_done);
                     NEXT_EDGE:  $display("[DECODER][%0t] FSM: NEXT_EDGE (edge_idx=%0d)", $time, edge_idx);
                     FINISH:     $display("[DECODER][%0t] FSM: FINISH (edge_idx=%0d)", $time, edge_idx);
@@ -168,6 +199,7 @@ module edge_decoder
             state <= next_state;
         end
     end
+
     
     //============================================
     // Next State Logic - FIXED
@@ -182,6 +214,7 @@ module edge_decoder
             end
             
             READ_EDGE: begin
+                if (edge_features_valid)
                 next_state = LAYER1;
             end
             
@@ -192,6 +225,11 @@ module edge_decoder
             
             LAYER2: begin
                 if (layer2_done)
+                    next_state = LAYER3;
+            end
+
+            LAYER3: begin
+                if (layer3_done)
                     next_state = WRITE;
             end
             
@@ -254,62 +292,35 @@ module edge_decoder
         decoded_data = 0;
         edge_addr_out = 0;
         data_valid = 0;
+        edge_features_re = 0;
         
         case (state)
+            READ_EDGE: begin
+                edge_features_re = 1;
+                edge_addr_out = edge_idx;
+            end
             WRITE: begin
                 decoded_data = decoded_features_reg;
                 edge_addr_out = edge_idx;
                 data_valid = 1;
+                if (output_file_handle != 0 && OUTPUT_FILE != "") begin
+                        $fwrite(output_file_handle, "%b\n", decoded_features_reg);
+                    end
             end
             
             FINISH: begin
                 done = 1;  // Assert done in FINISH state
+                if (output_file_handle != 0 && OUTPUT_FILE != "") begin
+                        $fclose(output_file_handle);
+                        $display("[DECODER] Output file closed: %s", OUTPUT_FILE);
+                    end
             end
             
             default: ;
         endcase
     end
     
-    //============================================
-    // Layer Reset Control - FIXED v2 with DEBUG
-    //============================================
-    always @(*) begin
-        // Default: keep layers active
-        layer1_rstn = rstn;
-        layer2_rstn = rstn;
-        
-        case (state)
-            IDLE: begin
-                // Both in reset when idle
-                layer1_rstn = 0;
-                layer2_rstn = 0;
-            end
-            
-            READ_EDGE: begin
-                // Reset layer1 so it's ready to start in LAYER1 state
-                layer1_rstn = 0;
-                // Keep layer2 active (it will be reset when we reach LAYER1)
-                layer2_rstn = rstn;
-            end
-            
-            // Note: In LAYER1 and LAYER2 states, keep both active
-            // The layers self-manage via their counter logic
-            
-            default: begin
-                // All other states: both layers active
-                layer1_rstn = rstn;
-                layer2_rstn = rstn;
-            end
-        endcase
-    end
     
-    // Debug reset signals
-    always @(posedge clk) begin
-        if (state == LAYER2 && !layer2_rstn) begin
-            $display("[DECODER][%0t] ERROR: layer2_rstn=0 in LAYER2 state! rstn=%b, state=%b", 
-                    $time, rstn, state);
-        end
-    end
     
     //============================================
     // Data Path Registers
@@ -318,14 +329,15 @@ module edge_decoder
         if (!rstn) begin
             current_edge_data <= 0;
             layer1_out_reg <= 0;
+            layer2_out_reg <= 0;
             decoded_features_reg <= 0;
         end else begin
             case (state)
                 READ_EDGE: begin
-                    // Read edge data from internal memory
-                    current_edge_data <= edge_mem[edge_idx];
-                    $display("[DECODER][%0t] === Processing Edge %0d: Input = %h ===", 
-                            $time, edge_idx, edge_mem[edge_idx]);
+                    if (edge_features_valid) begin
+                        current_edge_data <= edge_features;
+                        $display("[DECODER][%0t]   Edge %0d READ_EDGE: edge_features=%h", $time, edge_idx, edge_features);
+                    end
                 end
                 
                 LAYER1: begin
@@ -334,13 +346,20 @@ module edge_decoder
                         $display("[DECODER][%0t]   Edge %0d Layer1 Output: %h", $time, edge_idx, layer1_out);
                     end
                 end
-                
+
                 LAYER2: begin
-                    $display("[DECODER][%0t]   Edge %0d Layer2: layer2_rstn=%b, layer2_done=%b, layer2_out=%h", 
-                            $time, edge_idx, layer2_rstn, layer2_done, layer2_out);
                     if (layer2_done) begin
-                        decoded_features_reg <= layer2_out;
-                        $display("[DECODER][%0t]   Edge %0d Layer2 Output (Final): %h", $time, edge_idx, layer2_out);
+                        layer2_out_reg <= layer2_out;
+                        $display("[DECODER][%0t]   Edge %0d Layer2 Output: %h", $time, edge_idx, layer2_out);
+                    end
+                end
+                
+                LAYER3: begin
+                    $display("[DECODER][%0t]   Edge %0d Layer3: layer3_start=%b, layer3_done=%b, layer3_out=%h", 
+                            $time, edge_idx, layer3_start, layer3_done, layer3_out);
+                    if (layer3_done) begin
+                        decoded_features_reg <= layer3_out;
+                        $display("[DECODER][%0t]   Edge %0d Layer3 Output (Final): %h", $time, edge_idx, layer3_out);
                     end
                 end
                 
@@ -357,6 +376,17 @@ module edge_decoder
                 
                 default: ;
             endcase
+        end
+    end
+
+    initial begin
+        if (OUTPUT_FILE != "") begin
+            output_file_handle = $fopen(OUTPUT_FILE, "w");
+            if (output_file_handle == 0) begin
+                $display("[DECODER] ERROR: Could not open output file: %s", OUTPUT_FILE);
+            end else begin
+                $display("[DECODER] Output file opened: %s", OUTPUT_FILE);
+            end
         end
     end
     

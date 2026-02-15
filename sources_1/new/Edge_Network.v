@@ -56,7 +56,7 @@ module Edge_Network #(
     // Output Index for Node Encoder BRAM
     output reg [RAM_ADDR_BITS_FOR_NODE-1:0] node_index,
     // Output Edge Features to PingPong Buffer
-    output [DATA_BITS*EDGE_FEATURES-1:0] edge_output,
+    output reg [DATA_BITS*EDGE_FEATURES-1:0] edge_output,
     output reg              done
     );
 
@@ -631,7 +631,6 @@ endcase
     assign edge_address = idx*EDGE_FEATURES;
     assign out_node_index_ss = src*NODE_FEATURES;
     assign in_node_index_ss = dest*NODE_FEATURES;
-    assign edge_output = Layer3_out_r;  // Use registered version
 
     // State register
     always @(posedge clk or negedge rstn) begin
@@ -696,7 +695,7 @@ endcase
             end
 
             STORE: begin
-                // Wait for all writes to complete after initiating them
+             edge_output = Layer3_out_r;  // Use registered version
                 if (store_writes_initiated && 
                     (current_edge_features_done_captured) &&
                     (in_node_ss_done_captured) &&
@@ -882,23 +881,23 @@ endcase
             end
 
             LAYER1: begin
-                $display("Edge Network Block %d - Layer 1 Input: %h", BLOCK_NUM, concat_features);
+                // $display("Edge Network Block %d - Layer 1 Input: %h", BLOCK_NUM, concat_features);
                 if (Layer1_out_valid)
                     $display("Edge Network Block %d - Layer 1 Output: %h", BLOCK_NUM, Layer1_out_r);
             end
             LAYER2: begin
-                $display("Edge Network Block %d - Layer 2 Input: %h", BLOCK_NUM, Layer1_out_r);
+                // $display("Edge Network Block %d - Layer 2 Input: %h", BLOCK_NUM, Layer1_out_r);
                 if (Layer2_out_valid)
                     $display("Edge Network Block %d - Layer 2 Output: %h", BLOCK_NUM, Layer2_out_r);
             end
             LAYER3: begin
-                $display("Edge Network Block %d - Layer 3 Input: %h", BLOCK_NUM, Layer2_out_r);
+                // $display("Edge Network Block %d - Layer 3 Input: %h", BLOCK_NUM, Layer2_out_r);
                 if (Layer3_out_valid)
                     $display("Edge Network Block %d - Layer 3 Output: %h", BLOCK_NUM, Layer3_out_r);
             end
             STORE: begin
                 if (!store_writes_initiated)
-                    $display("Edge Network Block %d - Layer 3 Output (to be stored): %h", BLOCK_NUM, Layer3_out_r);
+                    $display("Edge Network Block %d -Edge %d, Layer 3 Output (to be stored): %h", BLOCK_NUM, edge_index, Layer3_out_r);
             end
         endcase
     end

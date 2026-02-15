@@ -163,7 +163,7 @@ module storage_module
     input edge_score_write_start,
     input [RAM_ADDR_BITS_FOR_EDGE-6:0] edge_score_write_addr_base,
     input [$clog2(1):0] edge_score_write_burst_size,
-    input [DATA_BITS*MAX_BURST_SIZE-1:0] edge_score_write_data,
+    input [DATA_BITS-1:0] edge_score_write_data,
     output edge_score_write_done,
     output edge_score_write_busy,
     

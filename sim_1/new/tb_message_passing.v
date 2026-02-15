@@ -32,6 +32,13 @@ module tb_message_passing_simplified;
     wire [ADDR_BITS-1:0] edge_addr_out;
     wire edge_valid;
     wire edge_done;
+
+    //Edge Decoder Signals 
+    reg dec_start = 0;
+    wire [DATA_BITS-1:0] dec_data_out;
+    wire [ADDR_BITS-6:0] dec_edge_addr_out;
+    wire dec_data_valid;
+    wire dec_done;
     
     // ===============================
     // Node Encoder Signals
@@ -161,7 +168,9 @@ module tb_message_passing_simplified;
     wire [NODE_ADDR_BITS-1:0] mp_node_address;
     wire [NODE_ADDR_BITS-6:0] mp_node_index;
     wire [DATA_BITS*OUT_FEATURES-1:0] mp_node_output;
-    
+    wire [DATA_BITS*OUT_FEATURES-1:0] edge_features;
+    wire edge_features_re;
+
     // ===============================
     // Encoder to Storage Connections
     // ===============================
@@ -186,8 +195,8 @@ module tb_message_passing_simplified;
     assign encoder_edge_read_start = mp_initial_edge_features_re;
     assign encoder_edge_read_addr = mp_edge_address;
     
-    assign buf0_edge_read_start = mp_edge_buf0_re;
-    assign buf0_edge_read_addr = mp_edge_address;
+    assign buf0_edge_read_start = mp_edge_buf0_re || edge_features_re; // MP or Decoder can read from buf0
+    assign buf0_edge_read_addr = mp_edge_buf0_re ? mp_edge_address : dec_edge_addr_out * OUT_FEATURES;
     
     assign buf1_edge_read_start = mp_edge_buf1_re;
     assign buf1_edge_read_addr = mp_edge_address;
@@ -339,7 +348,7 @@ module tb_message_passing_simplified;
         .buf0_edge_write_start(buf0_edge_write_start),
         .buf0_edge_write_addr_base(buf0_edge_write_addr),
         .buf0_edge_write_burst_size(6'd32),
-        .buf0_edge_write_data(edge_data_out),
+        .buf0_edge_write_data(encoder_edge_write_start ? edge_data_out : mp_edge_output),
         .buf0_edge_write_done(buf0_edge_write_done),
         .buf0_edge_write_busy(),
         
@@ -369,7 +378,7 @@ module tb_message_passing_simplified;
         .buf0_node_write_start(buf0_node_write_start),
         .buf0_node_write_addr_base(buf0_node_write_addr),
         .buf0_node_write_burst_size(6'd32),
-        .buf0_node_write_data(node_data_out),
+        .buf0_node_write_data(encoder_node_write_start ? node_data_out : mp_node_output),
         .buf0_node_write_done(buf0_node_write_done),
         .buf0_node_write_busy(),
         
@@ -426,10 +435,10 @@ module tb_message_passing_simplified;
         .out_ss_node_read_busy(),
         
         // Edge Score BRAM (not used in this simplified test)
-        .edge_score_write_start(1'b0),
-        .edge_score_write_addr_base({ADDR_BITS-5{1'b0}}),
+        .edge_score_write_start(dec_data_valid),
+        .edge_score_write_addr_base(dec_edge_addr_out),
         .edge_score_write_burst_size(1'd1),
-        .edge_score_write_data(256'b0),
+        .edge_score_write_data(dec_data_out),
         .edge_score_write_done(),
         .edge_score_write_busy(),
         
@@ -545,6 +554,27 @@ module tb_message_passing_simplified;
         .node_index(mp_node_index),
         .node_output(mp_node_output)
     );
+
+    edge_decoder #(
+        .NUM_EDGES(NUM_EDGES),
+        .NUM_FEATURES(OUT_FEATURES),
+        .DATA_BITS(DATA_BITS),
+        .OUT_FEATURES(OUT_FEATURES),
+        .ADDR_BITS(ADDR_BITS),
+        .WEIGHT_BITS(8),
+        .BIAS_BITS(8)
+    ) edge_dec (
+        .clk(clk),
+        .rstn(rstn),
+        .start(dec_start),
+        .decoded_data(dec_data_out),
+        .edge_addr_out(dec_edge_addr_out),
+        .data_valid(dec_data_valid),
+        .done(dec_done),
+        .edge_features(buf0_edge_read_data[OUT_FEATURES*DATA_BITS-1:0]),
+        .edge_features_re(edge_features_re),
+        .edge_features_valid(buf0_edge_read_valid)
+    );
     
     // ===============================
     // Monitoring for Display Only
@@ -567,6 +597,15 @@ module tb_message_passing_simplified;
         if (mp_node_buf0_we || mp_node_buf1_we) begin
             $display("[%0t] Node Network: node %0d processed (write to buf%0d)", 
                     $time, mp_node_address/OUT_FEATURES, mp_node_buf1_we ? 1 : 0);
+        end
+        if (mp_done) begin
+            $display("[%0t] Message Passing: DONE", $time);
+        end
+        if (dec_data_valid) begin
+            $display("[%0t] Edge Decoder: edge %0d decoded", $time, dec_edge_addr_out);
+        end
+        if (dec_done) begin
+            $display("[%0t] Edge Decoder: DONE", $time);
         end
     end
     
@@ -622,6 +661,16 @@ module tb_message_passing_simplified;
         wait(mp_done);
         $display("[%0t] Message Passing complete", $time);
         #100;
+
+        //Phase 4: Edge Decoding 
+        $display("\n[PHASE 4] Starting edge decoding...");
+        dec_start = 1;
+        #(CLK_PERIOD*2);
+        dec_start = 0;
+        
+        wait(dec_done);
+        $display("[%0t] Edge decoding complete", $time);
+        #100;
         
         // ===============================
         // Test Summary
@@ -632,6 +681,7 @@ module tb_message_passing_simplified;
         $display("Edge encoding: DONE");
         $display("Node encoding: DONE");
         $display("Message Passing: DONE");
+        $display("Edge decoding: DONE");
         $display("========================================\n");
         
         #100;

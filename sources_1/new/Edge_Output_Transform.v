@@ -2,7 +2,7 @@
 
 module edge_output_transform
 #(
-    parameter LAYER_NO       = 2,
+    parameter LAYER_NO        = 2,
     parameter NUM_NEURONS    = 1,
     parameter NUM_FEATURES   = 32,
     parameter DATA_BITS      = 8,
@@ -13,92 +13,96 @@ module edge_output_transform
     input  clk,
     input  rstn,
     input  activation_function,
+    input  start,
     input  signed [NUM_FEATURES*DATA_BITS-1:0] data_in_flat,
-    output signed [DATA_BITS-1:0] data_out_flat,
+    output signed [NUM_NEURONS*DATA_BITS-1:0] data_out_flat,
     output done
 );
 
     // Internal counter signals
     wire [31:0] counter;
     wire counter_done;
+    reg computation_active;
+    // Individual neuron outputs
+    wire signed [DATA_BITS-1:0] neuron_outputs [0:NUM_NEURONS-1];
+    // Add a delay register for done signal
+    reg done_reg;
+    reg [6:0] done_delay_counter;
     
+    // Control computation active flag - FIXED STATE MACHINE
+    always @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            computation_active <= 0;
+            done_reg <= 0;
+            done_delay_counter <= 0;
+        end else begin
+            if (start && !computation_active && !done_reg) begin
+                computation_active <= 1;  // Start computation
+                done_reg <= 0;
+                done_delay_counter <= 0;
+                //$display("[%0t] MP_Node_Layer_B1_L2: Computation started", $time);
+            end else if (counter_done && computation_active && !done_reg) begin
+                // Counter is done, start done delay
+                if (done_delay_counter < 1) begin  // Wait cycles for neurons to finish
+                    done_delay_counter <= done_delay_counter + 1;
+                    done_reg <= 0;
+                    // $display("[%0t] MP_Node_Layer_B1_L2: Waiting for neurons, delay=%0d", 
+                    //         $time, done_delay_counter);
+                end else begin
+                    // After delay, assert done (keep computation_active HIGH!)
+                    //$display("[%0t] MP_Node_Layer_B1_L2: About to assert done - neuron outputs[0]=%h", 
+                            //$time, neuron_outputs[0]);
+                    //$display("[%0t] MP_Node_Layer_B1_L2: data_out_flat[31:0]=%h", 
+                            //$time, data_out_flat[31:0]);
+                    done_reg <= 1;
+                    done_delay_counter <= 0;
+                    //$display("[%0t] MP_Node_Layer_B1_L2: Computation completed, asserting done", $time);
+                end
+            end else if (done_reg && start) begin
+                // New start signal received, clear done and restart
+                computation_active <= 1;
+                done_reg <= 0;
+                done_delay_counter <= 0;
+                //$display("[%0t] MP_Node_Layer_B1_L2: Restarting computation", $time);
+            end
+        end
+    end
+
+    assign done = done_reg;
+
     // Instantiate internal counter
     counter #(
         .END_COUNTER(NUM_FEATURES)
     ) layer_counter (
         .clk(clk),
-        .rstn(rstn),
+        .rstn(start),
         .counter_out(counter),
         .counter_donestatus(counter_done)
     );
-    
-    // Done signal driven by counter
-    assign done = counter_done;
-
-    // Single neuron output
-    wire signed [DATA_BITS-1:0] neuron_output;
-    
-    // Instantiate single output neuron
-    neuron #(
-        .NEURON_WIDTH (NUM_FEATURES),
-        .DATA_BITS    (DATA_BITS),
-        .WEIGHT_BITS  (WEIGHT_BITS),
-        .BIAS_BITS    (BIAS_BITS),
-        .WeightFile   ("output_w_2_0.mif"),
-        .BiasFile     ("output_b_2_0.mif")
-    ) output_neuron (
-        .clk                 (clk),
-        .rstn                (rstn),
-        .activation_function (activation_function),
-        .data_in_flat        (data_in_flat),
-        .counter             (counter),
-        .data_out            (neuron_output)
-    );
-    
-    // Assign output
-    assign data_out_flat = neuron_output;
-    
-    // // Debug - detailed tracing
-    // reg prev_rstn = 0;
-    // always @(posedge clk) begin
-    //     prev_rstn <= rstn;
         
-    //     if (!rstn && prev_rstn) begin
-    //         $display("[EDGE_OUTPUT_XFORM][%0t] *** ENTERING RESET ***", $time);
-    //     end else if (rstn && !prev_rstn) begin
-    //         $display("[EDGE_OUTPUT_XFORM][%0t] *** EXITING RESET - counter will start ***", $time);
-    //     end else if (rstn) begin
-    //         if (counter == 0) begin
-    //             $display("[EDGE_OUTPUT_XFORM][%0t] START: counter=%0d, data_in[31:0]=%h_%h_%h_%h", 
-    //                      $time, counter, data_in_flat[31:24], data_in_flat[23:16], 
-    //                      data_in_flat[15:8], data_in_flat[7:0]);
-    //         end
-            
-    //         if (counter == 1) begin
-    //             $display("[EDGE_OUTPUT_XFORM][%0t] PROCESSING: counter=%0d, neuron_out=%h (should not be xx if weights loaded)", 
-    //                      $time, counter, neuron_output);
-    //         end
-            
-    //         if (counter_done) begin
-    //             if (neuron_output === 8'bxxxxxxxx) begin
-    //                 $display("[EDGE_OUTPUT_XFORM][%0t] ERROR: neuron_out=xx! Counter=%0d, rstn=%b", 
-    //                         $time, counter, rstn);
-    //                 $display("[EDGE_OUTPUT_XFORM][%0t]   -> This means neuron weights did NOT load from output_w_0.mif!", $time);
-    //             end else begin
-    //                 $display("[EDGE_OUTPUT_XFORM][%0t] SUCCESS: counter=%0d, neuron_out=%h (decimal %0d)", 
-    //                         $time, counter, neuron_output, $signed(neuron_output));
-    //             end
-    //         end
-    //     end
-    // end
-    
-    // Debug
-    initial begin
-        $display("========================================");
-        $display("Edge Output Transform Layer Initialized");
-        $display("  Input Features:  %0d", NUM_FEATURES);
-        $display("  Output:          1 value (%0d bits)", DATA_BITS);
-        $display("========================================");
-    end
+    // Generate neurons
+    generate
+
+        // Neuron 0
+        if (NUM_NEURONS > 0) begin : neuron_0
+            neuron #(
+                .NEURON_WIDTH (NUM_FEATURES),
+                .DATA_BITS    (DATA_BITS),
+                .WEIGHT_BITS  (WEIGHT_BITS),
+                .BIAS_BITS    (BIAS_BITS),
+                .WeightFile   ("output_w_2_0.mif"),
+                .BiasFile     ("output_b_2_0.mif")
+            ) inst (
+                .clk                 (clk),
+                .rstn                (rstn),
+                .activation_function (activation_function),
+                .data_in_flat        (data_in_flat),
+                .counter             (counter),
+                .data_out            (neuron_outputs[0])
+            );
+            assign data_out_flat[0*DATA_BITS +: DATA_BITS] = neuron_outputs[0];
+        end
+
+    endgenerate
 
 endmodule
