@@ -15,7 +15,7 @@ module edge_output_transform
     input  activation_function,
     input  start,
     input  signed [NUM_FEATURES*DATA_BITS-1:0] data_in_flat,
-    output signed [NUM_NEURONS*DATA_BITS-1:0] data_out_flat,
+    output signed [DATA_BITS-1:0] data_out_flat,
     output done
 );
 
@@ -24,7 +24,7 @@ module edge_output_transform
     wire counter_done;
     reg computation_active;
     // Individual neuron outputs
-    wire signed [DATA_BITS-1:0] neuron_outputs [0:NUM_NEURONS-1];
+    wire signed [DATA_BITS+WEIGHT_BITS+8-1:0] neuron_outputs [0:NUM_NEURONS-1];
     // Add a delay register for done signal
     reg done_reg;
     reg [6:0] done_delay_counter;

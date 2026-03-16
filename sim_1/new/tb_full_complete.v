@@ -55,9 +55,9 @@ module tb_full_complete;
     // ===============================
     // Edge Encoder BRAM interface
     reg encoder_edge_write_start = 0;
-    reg [ADDR_BITS-1:0] encoder_edge_write_addr = 0;
+    reg [ADDR_BITS +5-1:0] encoder_edge_write_addr = 0;
     reg encoder_edge_read_start = 0;
-    reg [ADDR_BITS-1:0] encoder_edge_read_addr = 0;
+    reg [ADDR_BITS+5-1:0] encoder_edge_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] encoder_edge_read_data;
     wire encoder_edge_read_valid;
     wire encoder_edge_write_done;
@@ -66,20 +66,21 @@ module tb_full_complete;
     
     // Buffer0 Edge interface
     reg buf0_edge_write_start = 0;
-    reg [ADDR_BITS-1:0] buf0_edge_write_addr = 0;
+    reg [ADDR_BITS+5-1:0] buf0_edge_write_addr = 0;
     reg buf0_edge_read_start = 0;
-    reg [ADDR_BITS-1:0] buf0_edge_read_addr = 0;
+    reg [ADDR_BITS+5-1:0] buf0_edge_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] buf0_edge_read_data;
     wire buf0_edge_read_valid;
     wire buf0_edge_write_done;
     wire buf0_edge_write_busy;
+    wire edge_features_re;
     wire buf0_edge_read_busy;
     
     // Buffer1 Edge interface
     reg buf1_edge_write_start = 0;
-    reg [ADDR_BITS-1:0] buf1_edge_write_addr = 0;
+    reg [ADDR_BITS+5-1:0] buf1_edge_write_addr = 0;
     reg buf1_edge_read_start = 0;
-    reg [ADDR_BITS-1:0] buf1_edge_read_addr = 0;
+    reg [ADDR_BITS+5-1:0] buf1_edge_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] buf1_edge_read_data;
     wire buf1_edge_read_valid;
     wire buf1_edge_write_done;
@@ -88,9 +89,9 @@ module tb_full_complete;
     
     // Node Encoder BRAM interface
     reg encoder_node_write_start = 0;
-    reg [NODE_ADDR_BITS-1:0] encoder_node_write_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] encoder_node_write_addr = 0;
     reg encoder_node_read_start = 0;
-    reg [NODE_ADDR_BITS-1:0] encoder_node_read_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] encoder_node_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] encoder_node_read_data;
     wire encoder_node_read_valid;
     wire encoder_node_write_done;
@@ -99,9 +100,9 @@ module tb_full_complete;
     
     // Buffer0 Node interface
     reg buf0_node_write_start = 0;
-    reg [NODE_ADDR_BITS-1:0] buf0_node_write_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] buf0_node_write_addr = 0;
     reg buf0_node_read_start = 0;
-    reg [NODE_ADDR_BITS-1:0] buf0_node_read_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] buf0_node_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] buf0_node_read_data;
     wire buf0_node_read_valid;
     wire buf0_node_write_done;
@@ -110,9 +111,9 @@ module tb_full_complete;
     
     // Buffer1 Node interface
     reg buf1_node_write_start = 0;
-    reg [NODE_ADDR_BITS-1:0] buf1_node_write_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] buf1_node_write_addr = 0;
     reg buf1_node_read_start = 0;
-    reg [NODE_ADDR_BITS-1:0] buf1_node_read_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] buf1_node_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] buf1_node_read_data;
     wire buf1_node_read_valid;
     wire buf1_node_write_done;
@@ -121,23 +122,23 @@ module tb_full_complete;
     
     // Scatter-Sum interfaces
     reg in_ss_node_read_start = 0;
-    reg [NODE_ADDR_BITS-1:0] in_ss_node_read_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] in_ss_node_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] in_ss_node_read_data;
     wire in_ss_node_read_valid;
     
     reg out_ss_node_read_start = 0;
-    reg [NODE_ADDR_BITS-1:0] out_ss_node_read_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] out_ss_node_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] out_ss_node_read_data;
     wire out_ss_node_read_valid;
     
     reg in_ss_node_write_start = 0;
-    reg [NODE_ADDR_BITS-1:0] in_ss_node_write_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] in_ss_node_write_addr = 0;
     reg [DATA_BITS*MAX_BURST_SIZE-1:0] in_ss_node_write_data = 0;
     wire in_ss_node_write_done;
     wire in_ss_node_write_busy;
     
     reg out_ss_node_write_start = 0;
-    reg [NODE_ADDR_BITS-1:0] out_ss_node_write_addr = 0;
+    reg [NODE_ADDR_BITS+5-1:0] out_ss_node_write_addr = 0;
     reg [DATA_BITS*MAX_BURST_SIZE-1:0] out_ss_node_write_data = 0;
     wire out_ss_node_write_done;
     wire out_ss_node_write_busy;
@@ -153,9 +154,9 @@ module tb_full_complete;
     
     // Edge Score BRAM interface
     reg edge_score_write_start = 0;
-    reg [ADDR_BITS-6:0] edge_score_write_addr = 0;
+    reg [ADDR_BITS-1:0] edge_score_write_addr = 0;
     reg edge_score_read_start = 0;
-    reg [ADDR_BITS-6:0] edge_score_read_addr = 0;
+    reg [ADDR_BITS-1:0] edge_score_read_addr = 0;
     wire [DATA_BITS*MAX_BURST_SIZE-1:0] edge_score_read_data;
     wire edge_score_read_valid;
     wire edge_score_write_done;
@@ -536,7 +537,10 @@ module tb_full_complete;
         .decoded_data(decoded_edge_data),
         .edge_addr_out(decoded_edge_addr),
         .data_valid(decoded_edge_valid),
-        .done(edge_decoder_done)
+        .done(edge_decoder_done),
+        .edge_features(buf0_edge_read_data[OUT_FEATURES*DATA_BITS-1:0]),
+        .edge_features_re(edge_features_re),
+        .edge_features_valid(buf0_edge_read_valid)
     );
     
     // Node Encoder
@@ -562,8 +566,8 @@ module tb_full_complete;
     // Storage Module
     storage_module #(
         .DATA_BITS(DATA_BITS),
-        .RAM_ADDR_BITS_FOR_NODE(NODE_ADDR_BITS),
-        .RAM_ADDR_BITS_FOR_EDGE(ADDR_BITS),
+        .RAM_ADDR_BITS_FOR_NODE(NODE_ADDR_BITS+5),
+        .RAM_ADDR_BITS_FOR_EDGE(ADDR_BITS+5),
         .NUM_NODES(NUM_NODES),
         .NUM_EDGES(NUM_EDGES),
         .NUM_FEATURES(OUT_FEATURES),
@@ -619,7 +623,7 @@ module tb_full_complete;
         .buf0_edge_write_done(buf0_edge_write_done),
         .buf0_edge_write_busy(buf0_edge_write_busy),
         
-        .buf0_edge_read_start(buf0_edge_read_start),
+        .buf0_edge_read_start(buf0_edge_read_start || edge_features_re),
         .buf0_edge_read_addr_base(buf0_edge_read_addr),
         .buf0_edge_read_burst_size(6'd32),
         .buf0_edge_read_data(buf0_edge_read_data),
@@ -630,7 +634,7 @@ module tb_full_complete;
         .buf1_edge_write_start(buf1_edge_write_start),
         .buf1_edge_write_addr_base(buf1_edge_write_addr),
         .buf1_edge_write_burst_size(6'd32),
-        .buf1_edge_write_data({224'b0, en_edge_output}),
+        .buf1_edge_write_data(en_edge_output),
         .buf1_edge_write_done(buf1_edge_write_done),
         .buf1_edge_write_busy(buf1_edge_write_busy),
         
@@ -660,7 +664,7 @@ module tb_full_complete;
         .buf1_node_write_start(buf1_node_write_start),
         .buf1_node_write_addr_base(buf1_node_write_addr),
         .buf1_node_write_burst_size(6'd32),
-        .buf1_node_write_data({224'b0, nn_node_output}),
+        .buf1_node_write_data(nn_node_output),
         .buf1_node_write_done(buf1_node_write_done),
         .buf1_node_write_busy(buf1_node_write_busy),
         
@@ -704,7 +708,7 @@ module tb_full_complete;
         .edge_score_write_start(edge_score_write_start),
         .edge_score_write_addr_base(edge_score_write_addr),
         .edge_score_write_burst_size(1'd1),
-        .edge_score_write_data({248'b0, decoded_edge_data_reg}),  // Use registered data
+        .edge_score_write_data(decoded_edge_data_reg),  // Use registered data
         .edge_score_write_done(edge_score_write_done),
         .edge_score_write_busy(edge_score_write_busy),
         

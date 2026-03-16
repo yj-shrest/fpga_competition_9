@@ -89,7 +89,7 @@ module edge_encoder
         .activation_function (1'b1),
         .data_in_flat        (layer1_in),
         .data_out_flat       (layer1_out),
-        .done                (layer1_done)
+        .valid_out                (layer1_done)
     );
     
     //============================================
@@ -108,7 +108,7 @@ module edge_encoder
         .activation_function (1'b1),
         .data_in_flat        (layer1_out_reg),
         .data_out_flat       (layer2_out),
-        .done                (layer2_done)
+        .valid_out                (layer2_done)
     );
     
     //============================================
@@ -127,7 +127,7 @@ module edge_encoder
         .activation_function (1'b1),
         .data_in_flat        (layer2_out_reg),
         .data_out_flat       (layer3_out),
-        .done                (layer3_done)
+        .valid_out                (layer3_done)
     );
     
     //============================================
@@ -301,29 +301,29 @@ endgenerate
                 READ_EDGE: begin
                     // Read edge data from internal memory
                     current_edge_data <= edge_mem[edge_idx];
-                    // $display("=== Processing Edge %0d: Input = %h ===", 
-//                            edge_idx, edge_mem[edge_idx]);
+                    $display("=== Processing Edge %0d: Input = %h ===", 
+                           edge_idx, edge_mem[edge_idx]);
                 end
                 
                 LAYER1: begin
                     if (layer1_done) begin
                         layer1_out_reg <= layer1_out;
-                        // $display("  Layer1 Output: %h", layer1_out);
+                        $display("  Layer1 Output: %h", layer1_out);
                     end
                 end
                 
                 LAYER2: begin
                     if (layer2_done) begin
                         layer2_out_reg <= layer2_out;
-                        // $display("  Layer2 Output: %h", layer2_out);
+                        $display("  Layer2 Output: %h", layer2_out);
                     end
                 end
                 
                 LAYER3: begin
                     if (layer3_done) begin
                         encoded_features_reg <= layer3_out;
-                        // $display("  Layer3 Output (Encoded): %h", layer3_out);
-                        // $display("=== Edge %0d Processing Complete ===", edge_idx);
+                        $display("  Layer3 Output (Encoded): %h", layer3_out);
+                        $display("=== Edge %0d Processing Complete ===", edge_idx);
                     end
                 end
                 

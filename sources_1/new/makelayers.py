@@ -6,9 +6,9 @@ Generate Verilog node_encoder_layer module with 32 neurons and internal counter
 def generate_layer_module(num_features=32, num_neurons=32, block_no=1, layer_no=1):
     code = f"""`timescale 1ns / 1ps
 
-module edge_output_transform
+module MP_Node_Layer_B{block_no}_L{layer_no}
 #(
-    parameter LAYER_NO        = {layer_no},
+    parameter LAYER_NO       = {layer_no},
     parameter NUM_NEURONS    = {num_neurons},
     parameter NUM_FEATURES   = {num_features},
     parameter DATA_BITS      = 8,
@@ -100,8 +100,8 @@ module edge_output_transform
                 .DATA_BITS    (DATA_BITS),
                 .WEIGHT_BITS  (WEIGHT_BITS),
                 .BIAS_BITS    (BIAS_BITS),
-                .WeightFile   ("output_w_{layer_no}_{i}.mif"),
-                .BiasFile     ("output_b_{layer_no}_{i}.mif")
+                .WeightFile   ("mp_node_w_{block_no}_{layer_no}_{i}.mif"),
+                .BiasFile     ("mp_node_b_{block_no}_{layer_no}_{i}.mif")
             ) inst (
                 .clk                 (clk),
                 .rstn                (rstn),
@@ -124,16 +124,16 @@ endmodule
 
 if __name__ == "__main__":
     # Generate the module
-    # for block_no in range(1,8):
-    #     layer_no = 3
-    #     verilog_code = generate_layer_module(num_features=32, num_neurons=32, block_no=block_no, layer_no=layer_no)
+    for block_no in range(1,8):
+        layer_no = 3
+        verilog_code = generate_layer_module(num_features=32, num_neurons=32, block_no=block_no, layer_no=layer_no)
         
-    #     # Write to file
-    #     with open(f"MP_Node_Layer_B{block_no}_L{layer_no}.v", "w") as f:
-    #         f.write(verilog_code)
+        # Write to file
+        with open(f"MP_Node_Layer_B{block_no}_L{layer_no}.v", "w") as f:
+            f.write(verilog_code)
 
-    #     print(f"Generated MP_Node_Layer_B{block_no}_L{layer_no}.v with 32 neurons and internal counter!")
+        print(f"Generated MP_Node_Layer_B{block_no}_L{layer_no}.v with 32 neurons and internal counter!")
 
-    verilog_code = generate_layer_module(num_features=32, num_neurons=1, block_no=1, layer_no=2)
-    with open(f"edge_output_transform.v", "w") as f:
-        f.write(verilog_code)
+    # verilog_code = generate_layer_module(num_features=32, num_neurons=1, block_no=1, layer_no=2)
+    # with open(f"MP_Node_Layer_B{block_no}_L2.v", "w") as f:
+    #     f.write(verilog_code)

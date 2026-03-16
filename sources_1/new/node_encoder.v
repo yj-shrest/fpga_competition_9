@@ -83,7 +83,7 @@ module node_encoder
         .activation_function (1'b1),  // ReLU
         .data_in_flat        (layer1_in),
         .data_out_flat       (layer1_out),
-        .done                (layer1_done)
+        .valid_out                (layer1_done)
     );
     
     //============================================
@@ -102,7 +102,7 @@ module node_encoder
         .activation_function (1'b1),  // ReLU
         .data_in_flat        (layer1_out_reg),
         .data_out_flat       (layer2_out),
-        .done                (layer2_done)
+        .valid_out                (layer2_done)
     );
     
     //============================================
@@ -121,7 +121,7 @@ module node_encoder
         .activation_function (1'b1),  // ReLU
         .data_in_flat        (layer2_out_reg),
         .data_out_flat       (layer3_out),
-        .done                (layer3_done)
+        .valid_out                (layer3_done)
     );
     
     //============================================

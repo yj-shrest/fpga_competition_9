@@ -19,7 +19,7 @@ module neuron
 
     input  [31:0] counter,
 
-    output signed [DATA_BITS-1:0] data_out
+    output signed [DATA_BITS+WEIGHT_BITS+8-1:0] data_out
 );
 
     /* Memory arrays for weights and bias */
@@ -34,7 +34,7 @@ module neuron
     wire signed [WEIGHT_BITS-1:0]              bus_w;
     wire signed [DATA_BITS-1:0]                bus_data;
     wire signed [DATA_BITS+WEIGHT_BITS-1:0]    bus_mult_result;
-    wire signed [DATA_BITS+WEIGHT_BITS-1:0]    bus_adder;
+    wire signed [DATA_BITS+WEIGHT_BITS+8-1:0]    bus_adder;
 
     /* Load weights and bias from MIF files */
     integer i;
@@ -112,7 +112,8 @@ module neuron
     adder
     #(
         .DATA_BITS   (DATA_BITS),
-        .WEIGHT_BITS (WEIGHT_BITS)
+        .WEIGHT_BITS (WEIGHT_BITS),
+        .ACCUM_EXTRA (8)  // Extra bits for accumulator headroom
     )
     AD1
     (
@@ -120,27 +121,28 @@ module neuron
         .rstn      (rstn),
         .counter   (counter),
         .value_in  (bus_mult_result),
-        .value_out (bus_adder)
+        .value_out (data_out)
     );
 
     /* Activation + bias */
-    ReLu
-    #(
-        .DATA_BITS   (DATA_BITS),
-        .WEIGHT_BITS (WEIGHT_BITS),
-        .COUNTER_END (NEURON_WIDTH),
-        .BIAS_BITS   (BIAS_BITS)
-    )
-    activation_and_add_b
-    (
-        .clk                 (clk),
-        .rstn                (rstn),
-        .mult_sum_in         (bus_adder),
-        .counter             (counter),
-        .activation_function (activation_function),
-        .b                   (bias),
-        .neuron_out          (data_out)
-    );
+    // ReLu
+    // #(
+    //     .DATA_BITS   (DATA_BITS),
+    //     .WEIGHT_BITS (WEIGHT_BITS),
+    //     .COUNTER_END (NEURON_WIDTH),
+    //     .BIAS_BITS   (BIAS_BITS),
+    //     .ACCUM_EXTRA (8)  // Must match adder's ACCUM_EXTRA
+    // )
+    // activation_and_add_b
+    // (
+    //     .clk                 (clk),
+    //     .rstn                (rstn),
+    //     .mult_sum_in         (bus_adder),
+    //     .counter             (counter),
+    //     .activation_function (activation_function),
+    //     .b                   (bias),
+    //     .neuron_out          (data_out)
+    // );
 
     // Monitor at NEGATIVE edge - after posedge updates have settled
     // always @(negedge clk) begin

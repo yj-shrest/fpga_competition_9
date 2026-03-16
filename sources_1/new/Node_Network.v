@@ -145,7 +145,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B0_L2 #(
@@ -162,7 +162,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B0_L3 #(
@@ -179,7 +179,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
 
@@ -198,7 +198,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B1_L2 #(
@@ -215,7 +215,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B1_L3 #(
@@ -232,7 +232,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
 
@@ -251,7 +251,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B2_L2 #(
@@ -268,7 +268,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B2_L3 #(
@@ -285,7 +285,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
 
@@ -304,7 +304,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B3_L2 #(
@@ -321,7 +321,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B3_L3 #(
@@ -338,7 +338,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
 
@@ -357,7 +357,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B4_L2 #(
@@ -374,7 +374,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B4_L3 #(
@@ -391,7 +391,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
 
@@ -410,7 +410,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B5_L2 #(
@@ -427,7 +427,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B5_L3 #(
@@ -444,7 +444,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
 
@@ -463,7 +463,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B6_L2 #(
@@ -480,7 +480,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B6_L3 #(
@@ -497,7 +497,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
 
@@ -516,7 +516,7 @@ module Node_Network #(
                     .start(layer1_start),
                     .data_in_flat(concat_features),
                     .data_out_flat(Layer1_out),
-                    .done(Layer1_out_valid)
+                    .valid_out(Layer1_out_valid)
                 );
 
                 MP_Node_Layer_B7_L2 #(
@@ -533,7 +533,7 @@ module Node_Network #(
                     .start(layer2_start),
                     .data_in_flat(Layer1_out_r),
                     .data_out_flat(Layer2_out),
-                    .done(Layer2_out_valid)
+                    .valid_out(Layer2_out_valid)
                 );
 
                 MP_Node_Layer_B7_L3 #(
@@ -550,7 +550,7 @@ module Node_Network #(
                     .start(layer3_start),
                     .data_in_flat(Layer2_out_r),
                     .data_out_flat(Layer3_out),
-                    .done(Layer3_out_valid)
+                    .valid_out(Layer3_out_valid)
                 );
             end
         endcase
