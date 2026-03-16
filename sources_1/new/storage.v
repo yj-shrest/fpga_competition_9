@@ -3,11 +3,11 @@
 module storage_module
 #(
     parameter DATA_BITS = 8,
-    parameter RAM_ADDR_BITS_FOR_NODE = 0,
-    parameter RAM_ADDR_BITS_FOR_EDGE = 0,
-    parameter NUM_NODES = 0,
-    parameter NUM_EDGES = 0,
-    parameter NUM_FEATURES = 0,
+    parameter RAM_ADDR_BITS_FOR_NODE = 18,
+    parameter RAM_ADDR_BITS_FOR_EDGE = 14,
+    parameter NUM_NODES = 5,
+    parameter NUM_EDGES = 4,
+    parameter NUM_FEATURES = 6,
     parameter MAX_BURST_SIZE = 32,
     parameter FEATURE_DIM = 32
 )
