@@ -339,21 +339,21 @@ module edge_decoder
                 READ_EDGE: begin
                     if (edge_features_valid) begin
                         current_edge_data <= edge_features;
-                        $display("[DECODER][%0t]   Edge %0d READ_EDGE: edge_features=%h", $time, edge_idx, edge_features);
+                        // $display("[DECODER][%0t]   Edge %0d READ_EDGE: edge_features=%h", $time, edge_idx, edge_features);
                     end
                 end
                 
                 LAYER1: begin
                     if (layer1_done) begin
                         layer1_out_reg <= layer1_out;
-                        $display("[DECODER][%0t]   Edge %0d Layer1 Output: %h", $time, edge_idx, layer1_out);
+                        // $display("[DECODER][%0t]   Edge %0d Layer1 Output: %h", $time, edge_idx, layer1_out);
                     end
                 end
 
                 LAYER2: begin
                     if (layer2_done) begin
                         layer2_out_reg <= layer2_out;
-                        $display("[DECODER][%0t]   Edge %0d Layer2 Output: %h", $time, edge_idx, layer2_out);
+                        // $display("[DECODER][%0t]   Edge %0d Layer2 Output: %h", $time, edge_idx, layer2_out);
                     end
                 end
                 
@@ -362,13 +362,13 @@ module edge_decoder
                     //        $time, edge_idx, layer3_start, layer3_done, layer3_out);
                     if (layer3_done) begin
                         decoded_features_reg <= layer3_out;
-                        $display("[DECODER][%0t]   Edge %0d Layer3 Output (Final): %h", $time, edge_idx, layer3_out);
+                        // $display("[DECODER][%0t]   Edge %0d Layer3 Output (Final): %h", $time, edge_idx, layer3_out);
                     end
                 end
                 
                 WRITE: begin
-                    $display("[DECODER][%0t]   Edge %0d WRITE: decoded_data=%h, valid=%b", 
-                           $time, edge_idx, decoded_features_reg, 1'b1);
+                    // $display("[DECODER][%0t]   Edge %0d WRITE: decoded_data=%h, valid=%b", 
+                    //        $time, edge_idx, decoded_features_reg, 1'b1);
                 end
                 
                 // FINISH: begin
