@@ -3,6 +3,7 @@
 module top_module(
     input wire clk,
     input wire rstn,
+    input wire start,
     output wire processing_done,
     output wire [3:0] current_phase
 );
@@ -225,8 +226,10 @@ module top_module(
             
             case (phase_state)
                 PHASE_IDLE: begin
-                    wait_counter <= 8'd10;
-                    phase_state <= PHASE_EDGE_ENCODE;
+                    if (start) begin
+                        wait_counter <= 8'd10;
+                        phase_state <= PHASE_EDGE_ENCODE;
+                    end
                 end
                 
                 PHASE_EDGE_ENCODE: begin
@@ -294,8 +297,13 @@ module top_module(
                 end
                 
                 PHASE_DONE: begin
-                    // Stay in done state
-                    phase_state <= PHASE_DONE;
+                    // Allow a new start without full reset
+                    if (start) begin
+                        wait_counter <= 8'd10;
+                        phase_state <= PHASE_EDGE_ENCODE;
+                    end else begin
+                        phase_state <= PHASE_DONE;
+                    end
                 end
                 
                 default: begin
