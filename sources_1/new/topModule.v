@@ -6,8 +6,8 @@ module top_module(
     output wire processing_done,
     output wire [3:0] current_phase
 );
-    localparam NUM_EDGES = 4;
-    localparam NUM_NODES = 5;
+    localparam NUM_EDGES = 20000;
+    localparam NUM_NODES = 8192;
     localparam ADDR_BITS = $clog2(NUM_EDGES);  // 14 for 16384
     localparam NODE_ADDR_BITS = $clog2(NUM_NODES);  // 18 for 262144
     localparam NUM_FEATURES = 32;

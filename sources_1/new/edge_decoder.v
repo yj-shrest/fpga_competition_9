@@ -211,7 +211,7 @@ module edge_decoder
             IDLE: begin
                 if (start) begin
                     next_state = READ_EDGE;
-                    $display("Decoder Start READ EDGE STATE");
+                    // $display("Decoder Start READ EDGE STATE");
                 end
                     
             end
